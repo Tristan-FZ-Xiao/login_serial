@@ -18,7 +18,6 @@ class login:
 
 		if referer is not None:
 			req.add_header('Referer', referer)
-
 		try:
 			response = opener.open(req, data)
 		except:
@@ -43,7 +42,7 @@ class login:
 	# Input:	count: retry times
 	#		cookie: use to login
 	# Output:	return buf of html context
-	def get_html(url, referer, cookie, count):
+	def get_html4(self, url, referer, cookie, count):
 		g = urllib2.Request(url)
 		opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
 		if cookie is not None:
@@ -65,7 +64,7 @@ class login:
 				return resp.read()
 		return None
 
-	def get_html(self, url, count):
+	def get_html2(self, url, count):
 		for i in range(count):
 			try:
 				f = urllib2.urlopen(url)
@@ -85,23 +84,44 @@ def login_geewan_router():
 	password = 'admin'
 
 	a = login()
-	first_buf = a.get_html(login_url, 3)
+	first_buf = a.get_html2(login_url, 3)
 	if first_buf == None:
 		return
 	redir = re.findall("href=\"(.*?)\"", first_buf)
 	if redir == None:
 		return
-	login_buf = a.get_html(login_url + redir[0], 3)
+	login_buf = a.get_html2(login_url + redir[0], 3)
 	re_name = re.findall("name=\"username\" value=\"(.*?)\"", login_buf);
 	if re_name == None:
 		return
 	user_name = re_name[0]
-	cookie = a.login_server(login_url + redir[0], user_name, password, login_url + redir[0], 3)
-	print cookie 
+	cookie_buf = a.login_server(login_url + redir[0], user_name, password, login_url + redir[0], 3)
+	re_cookie = re.findall("(.*?); .*", cookie_buf)
+	ret_list = []
+	if re_cookie is not None:
+		ret_list.append(re_cookie[0])
+	re_stok = re.findall("(stok=.*?); .*", cookie_buf)
+	if re_stok is not None:
+		ret_list.append(re_stok[0])
+	re_path = re.findall("path=(.*?); .*", cookie_buf)
+	if re_path is not None:
+		ret_list.append(re_path[0])
+	return ret_list
+
+def reboot_geenwan_router():
+	url = "http://192.168.199.1/"
+	ret_list = login_geewan_router()
+
+	a = login()
+	reboot = a.get_html4(url + ret_list[2] + ";" + ret_list[1] + "/api/sys/reboot",
+				url + ret_list[2] + ";" + ret_list[1] + "/web/sys/sysinfo",
+				ret_list[0], 3)
+	print reboot
 
 if __name__ == '__main__':
 	print "hello world"
-	login_geewan_router()
+	reboot_geenwan_router()
+
 
 
 
